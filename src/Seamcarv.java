@@ -14,20 +14,22 @@ public class Seamcarv {
 	//
 	public static void main(String[] args) throws IOException {
 	// parse arguments: 
-	File INfile = new File(args[1]);
-	int newColumns = Integer.parseInt(args[2]);
-	int newRows = Integer.parseInt(args[3]);
-	int type = Integer.parseInt(args[4]);
-	File OUTfile = new File(args[5]);
+	File INfile = (new File(args[0]));
+	int newColumns = Integer.parseInt(args[1]);
+	int newRows = Integer.parseInt(args[2]);
+	int type = Integer.parseInt(args[3]);
+	File OUTfile = new File(args[4]);
 	SeamMap[] seammap = null; // TODO 
 	
 	//create image: 
 	BufferedImage INimg = ImageIO.read(INfile);
-	BufferedImage OUTimg = ImageIO.read(OUTfile); // TODO - change to right function. 
 	
 	// get image dimensions: 
 	int oldColumns = INimg.getWidth();
 	int oldRows = INimg.getHeight();
+	
+	// create outImge: 
+	BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType()); 
 	
 	// get energy matrix: 
 	float[][] energyMatrix = energyCal(INimg,type);
@@ -36,12 +38,13 @@ public class Seamcarv {
 	calculateSeamMap(energyMatrix,seammap);
 	
 	// remove seams: 
+
 	int size = oldColumns - newColumns; // TODO - vertical vs horizontal ? 
 	cutSeams(INimg,seammap,size,OUTimg);
 	
 	// write back the new Image: 
 	
-	//ImageIO.write(OUTimg, formatName, output);
+	ImageIO.write(OUTimg, "???", OUTfile); // TODO - "???"
 	
 	} // end of main 
 
@@ -79,7 +82,7 @@ public class Seamcarv {
 	private static void cutSeams(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
 		int width = iNimg.getWidth();
 		int hight = iNimg.getHeight();
-		int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()]; // TODO - is this the right dimm order.. 
+		//int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()]; // TODO - is this the right dimm order.. 
 		boolean edit = true;
 		for(int i = 0; i < hight; i++)
 		    for(int j = 0; j < width; j++){ //TODO - dimensions
@@ -87,22 +90,25 @@ public class Seamcarv {
 		        	if(j == seammap[j2].index){ edit = false; }
 				}
 		    	if(edit){
-		        	matrix[i][j] = iNimg.getRGB(i, j);
+		        	oUTimg.setRGB(i, j, iNimg.getRGB(i, j));
 		        } else {
 		        	continue;
 		        }
 		    }
-			
-		oUTimg = 
-		
 		}
 	// 
 	public static float[][] energyCal(BufferedImage img, int type) {
-		float[][] energyArr = null;
+		
 		int height = img.getHeight();
 		int width = img.getWidth();
+		float[][] energyArr = new float[width][height];
 		int neighbors = 8;
 		if (type != 2) {
+//			for (int i = 0; i < width-1; i++) {
+//				for (int j = 0; j < height-1; j++) {
+//					energyArr[i][j] = energyArr[i][j];
+	//			}}
+			//
 			for (int i = 0; i < height; i++) {
 				for (int j = 0; j < width; j++) {
 					if ((i==0 && j==0) || (i==height-1 && j==width-1) || (i==0 && j==width-1) || (i==height-1 && j==0)) {
@@ -134,7 +140,7 @@ public class Seamcarv {
 			if (k == -1) k++;
 			if (k > (img.getHeight()-1)) continue;
 			
-			for (int l = j - 1; l < j + 2; j++) {
+			for (int l = j - 1; l < j + 2; l++) {
 				if (l == -1) l++;
 				if (l > (img.getWidth()-1)) continue;
 					
