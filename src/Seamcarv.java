@@ -107,8 +107,8 @@ public class Seamcarv {
 		int width = inImg.getWidth();
 		int diff = 0;
 		boolean edit = false;
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width + size; j++) {
+		for (int i = 0; i < width + size; i++) {
+			for (int j = 0; j < height; j++) {
 				for (int k = 0; k < size; j++) {
 					if (j == seammap[k].index) {
 						edit = true;
@@ -134,17 +134,12 @@ public class Seamcarv {
 		float[][] energyArr = new float[width][height];
 		int neighbors = 8;
 		if (type != 2) {
-			// for (int i = 0; i < width-1; i++) {
-			// for (int j = 0; j < height-1; j++) {
-			// energyArr[i][j] = energyArr[i][j];
-			// }}
-			//
-			for (int i = 0; i < height; i++) {
-				for (int j = 0; j < width; j++) {
-					if ((i == 0 && j == 0) || (i == height - 1 && j == width - 1) || (i == 0 && j == width - 1)
-							|| (i == height - 1 && j == 0)) {
+			for (int i = 0; i < width; i++) {
+				for (int j = 0; j < height; j++) {
+					if ((i == 0 && j == 0) || (i == width - 1 && j == height - 1) || (i == 0 && j == height - 1)
+							|| (i == width - 1 && j == 0)) {
 						neighbors = 3;
-					} else if (i == 0 || i == height - 1 || j == 0 || j == width - 1) {
+					} else if (i == 0 || i == width - 1 || j == 0 || j == height - 1) {
 						neighbors = 5;
 					} else
 						neighbors = 8;
@@ -169,13 +164,13 @@ public class Seamcarv {
 		for (int k = i - 1; k < i + 2; k++) {
 			if (k == -1)
 				k++;
-			if (k > (img.getHeight() - 1))
+			if (k > (img.getWidth() - 1))
 				continue;
 
 			for (int l = j - 1; l < j + 2; l++) {
 				if (l == -1)
 					l++;
-				if (l > (img.getWidth() - 1))
+				if (l > (img.getHeight() - 1))
 					continue;
 
 				RGB2 = img.getRGB(k, l);
@@ -199,12 +194,12 @@ public class Seamcarv {
 		for (int k = i - 4; k < i + 5; k++) {
 			if (k < 0)
 				k = 0;
-			if (k > (img.getHeight() - 1))
+			if (k > (img.getWidth() - 1))
 				break;
 			for (int l = j - 4; l < j + 5; j++) {
 				if (l < 0)
 					l = 0;
-				if (l > (img.getWidth() - 1))
+				if (l > (img.getHeight() - 1))
 					break;
 				RGB2 = img.getRGB(k, l);
 				r2 = (RGB2 >> 16) & 0xff;
@@ -218,12 +213,12 @@ public class Seamcarv {
 		for (int k = i - 4; k < i + 5; k++) {
 			if (k < 0)
 				k = 0;
-			if (k > (img.getHeight() - 1))
+			if (k > (img.getWidth() - 1))
 				break;
 			for (int l = j - 4; l < j + 5; j++) {
 				if (l < 0)
 					l = 0;
-				if (l > (img.getWidth() - 1))
+				if (l > (img.getHeight() - 1))
 					break;
 				RGB2 = img.getRGB(k, l);
 				r2 = (RGB2 >> 16) & 0xff;
