@@ -6,11 +6,6 @@ import javax.imageio.ImageIO;
 public class test{
 
 	public static void main(String[] args) {
-<<<<<<< HEAD
-		
-
-	}
-=======
 
 		// TODO Auto-generated method stub
 
@@ -108,6 +103,4 @@ public class test{
 		h = -h;
 		return h;
 	}
-
->>>>>>> origin/master
 }
