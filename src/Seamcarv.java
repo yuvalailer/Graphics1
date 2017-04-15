@@ -82,6 +82,12 @@ public class Seamcarv {
 	}
 
 	private static void cutSeams(BufferedImage iNimg, int[][][] seamMap, int size, BufferedImage oUTimg) {
+		int[][] matrix = new int[iNimg.getWidth()][iNimg.getHeight()]; // TODO - is this the right dimm order.. 
+
+		for(int i = 0; i < 2048; i++)
+		    for(int j = 0; j < 2048; j++)
+		        arr[i][j] = image.getRGB(i, j);
+		
 		BufferedImage tmpImg = iNimg;
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < seamMap.length; j++) {
