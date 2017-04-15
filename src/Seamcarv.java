@@ -65,19 +65,14 @@ public class Seamcarv {
 	}
 
 	private static SeamMap dynamicSeam(float[][] energyMatrix, int i) {
-		SeamMap ans = null;
+	//	SeamMap ans = null;
 		int totalColumnEnergy = 0;
 		int[] sortPath = null;
 
 		for (int j = (energyMatrix[0].length - 1); j >= 0; j--) {
 			totalColumnEnergy += energyMatrix[i][j];
 		}
-
-		ans.value = totalColumnEnergy; // Weight of the entire seam.
-		ans.index = i; // TODO - change to top index, not bottom.. // index of
-						// the top row seam index.
-		ans.way = sortPath; // TODO - to be 0,1,-1 // the path of the shortest
-							// seam
+		SeamMap ans = new SeamMap(totalColumnEnergy, i, sortPath);
 		return ans;
 	}
 
