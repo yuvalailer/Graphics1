@@ -9,6 +9,12 @@ public class SeamMap implements Comparable<SeamMap>{
 		this.index = index;
 		this.way = way;
 	}
+	
+	public SeamMap() {
+		this.value=0;
+		this.index=0;
+		this.way= new int[]{0};;
+	}
 
 	@Override
 	public int compareTo(SeamMap o) {

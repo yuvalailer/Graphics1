@@ -19,7 +19,7 @@ public class Seamcarv {
 		int newRows = Integer.parseInt(args[2]);
 		int type = Integer.parseInt(args[3]);
 		File OUTfile = new File(args[4]);
-		SeamMap[] seammap = null; // TODO
+		SeamMap[] seammap = new SeamMap[]{};
 
 		// create image:
 		BufferedImage INimg = ImageIO.read(INfile);
@@ -48,17 +48,12 @@ public class Seamcarv {
 
 	} // end of main
 
-	private static int[][] getEnergy(BufferedImage iNimg, int type) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	private static void calculateSeamMap(float[][] energyMatrix, SeamMap[] seammap) {
 		// calculate seams dynamically:
-		for (int i = 0; i < energyMatrix.length; i++) { // Iterate over the
-														// map's bottom row.
-			seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in
-														// a dynamic form
+		for (int i = 0; i < energyMatrix.length; i++) {	 // Iterate over the
+														 // map's bottom row.
+			seammap[i] = dynamicSeam(energyMatrix, i);	 // Calculate the seams in
+														 // a dynamic form
 		}
 		// sort by energy:
 		Arrays.sort(seammap); // sort map by energy
