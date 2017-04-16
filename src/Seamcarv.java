@@ -65,7 +65,7 @@ public class Seamcarv {
 	}
 
 	private static SeamMap dynamicSeam(float[][] energyMatrix, int i) {
-	//	SeamMap ans = null;
+		// SeamMap ans = null;
 		int totalColumnEnergy = 0;
 		int[] sortPath = null;
 
@@ -105,16 +105,44 @@ public class Seamcarv {
 		for (int i = 0; i < width + size; i++) {
 			for (int j = 0; j < height; j++) {
 				for (int k = 0; k < size; j++) {
-					if (j == seammap[k].index) {
+					if (i == seammap[k].index) {
 						edit = true;
 						break;
 					}
 				}
-				outImg.setRGB(i, j, inImg.getRGB(i, j - diff));
+				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
 				if (edit == true) {
-					j++;
+					i++;
 					diff++;
-					outImg.setRGB(i, j, inImg.getRGB(i, j - diff));
+					outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
+					edit = false;
+				}
+			}
+		}
+	}
+
+	private static void addSeamsAlt(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
+		int height = inImg.getHeight();
+		int width = inImg.getWidth();
+		int diff = 0, avgRGB = 0;
+		boolean edit = false;
+		for (int i = 0; i < width + size; i++) {
+			for (int j = 0; j < height; j++) {
+				for (int k = 0; k < size; j++) {
+					if (i == seammap[k].index) {
+						edit = true;
+						break;
+					}
+				}
+				outImg.setRGB(i, j, inImg.getRGB(i-diff, j));
+				if (edit == true) {
+					i++;
+					diff++;
+					if ((i - diff - 1 != 0) && (i - diff + 1 != width)) {
+						avgRGB = (inImg.getRGB(i-diff-1, j) + inImg.getRGB(i-diff, j)
+								+ inImg.getRGB(i-diff+1, j)) / 3;
+					}
+					outImg.setRGB(i, j, avgRGB);
 					edit = false;
 				}
 			}
