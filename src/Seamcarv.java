@@ -21,7 +21,7 @@ public class Seamcarv {
 		File OUTfile = new File(args[4]);
 		boolean fd = OUTfile.createNewFile();
 		// TODO err
-		
+
 		// create image:
 		BufferedImage INimg = ImageIO.read(INfile);
 
@@ -29,9 +29,9 @@ public class Seamcarv {
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
 		SeamMap[] seammap = new SeamMap[oldColumns];
-		
-		System.out.println("procedure initiated");  
-		
+
+		System.out.println("procedure initiated");
+
 		// create outImge:
 		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
 
@@ -45,21 +45,22 @@ public class Seamcarv {
 
 		int size = oldColumns - newColumns; // TODO - vertical vs horizontal ?
 		cutSeams(INimg, seammap, size, OUTimg);
+		System.out.println("size of new image is: " + OUTimg.getHeight() + " " + OUTimg.getWidth());
 
 		// write back the new Image:
-		ImageIO.write(OUTimg, "???", OUTfile); // TODO - "???"
-		
-		//print all done
+		ImageIO.write(OUTimg, "jpg", OUTfile); // TODO - "???"
+
+		// print all done
 		System.out.println("all done. please enter your diractory to view your new photo.. ");
-		 
+
 	} // end of main
 
 	private static void calculateSeamMap(float[][] energyMatrix, SeamMap[] seammap) {
 		// calculate seams dynamically:
-		for (int i = 0; i < energyMatrix.length; i++) {	 // Iterate over the
-														 // map's bottom row.
-			seammap[i] = dynamicSeam(energyMatrix, i);	 // Calculate the seams in
-														 // a dynamic form
+		for (int i = 0; i < energyMatrix.length; i++) { // Iterate over the
+														// map's bottom row.
+			seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in
+														// a dynamic form
 		}
 		// sort by energy:
 		Arrays.sort(seammap); // sort map by energy
@@ -98,27 +99,51 @@ public class Seamcarv {
 			}
 	}
 
+	private static void cutSeams2(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
+		int width = iNimg.getWidth();
+		int height = iNimg.getHeight();
+		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
+		// // TODO - is this the right dimm order..
+		boolean edit = false;
+		int diff = 0;
+		for (int i = 0; i < width; i++) {
+			for (int k = 0; k < size; k++) {
+				if (i == seammap[k].index) {
+					edit = true;
+				}
+			}
+			if (!edit) {
+				for (int j = 0; j < height; j++) { // TODO - dimensions
+					oUTimg.setRGB(i - diff, j, iNimg.getRGB(i, j));
+				}
+			} else {
+				diff++;
+				edit = false;
+			}
+		}
+	}
+
 	private static void addSeams(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
 		int diff = 0;
 		boolean edit = false;
 		for (int i = 0; i < width + size; i++) {
-			for (int j = 0; j < height; j++) {
-				for (int k = 0; k < size; j++) {
-					if (i == seammap[k].index) {
-						edit = true;
-						break;
-					}
+			for (int k = 0; k < size; k++) {
+				if (i == seammap[k].index) {
+					edit = true;
+					break;
 				}
+			}
+			for (int j = 0; j < height; j++) {
 				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
 				if (edit == true) {
 					i++;
 					diff++;
 					outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
-					edit = false;
 				}
 			}
+			edit = false;
 		}
 	}
 
@@ -128,25 +153,25 @@ public class Seamcarv {
 		int diff = 0, avgRGB = 0;
 		boolean edit = false;
 		for (int i = 0; i < width + size; i++) {
-			for (int j = 0; j < height; j++) {
-				for (int k = 0; k < size; j++) {
-					if (i == seammap[k].index) {
-						edit = true;
-						break;
-					}
+			for (int k = 0; k < size; k++) {
+				if (i == seammap[k].index) {
+					edit = true;
+					break;
 				}
-				outImg.setRGB(i, j, inImg.getRGB(i-diff, j));
+			}
+			for (int j = 0; j < height; j++) {
+				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
 				if (edit == true) {
 					i++;
 					diff++;
 					if ((i - diff - 1 != 0) && (i - diff + 1 != width)) {
-						avgRGB = (inImg.getRGB(i-diff-1, j) + inImg.getRGB(i-diff, j)
-								+ inImg.getRGB(i-diff+1, j)) / 3;
+						avgRGB = (inImg.getRGB(i - diff - 1, j) + inImg.getRGB(i - diff, j)
+								+ inImg.getRGB(i - diff + 1, j)) / 3;
 					}
 					outImg.setRGB(i, j, avgRGB);
-					edit = false;
 				}
 			}
+			edit = false;
 		}
 	}
 
