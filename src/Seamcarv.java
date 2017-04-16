@@ -29,16 +29,12 @@ public class Seamcarv {
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
 		SeamMap[] seammap = new SeamMap[oldColumns];
-<<<<<<< HEAD
+
 		
 		System.out.println("procedure initiated");  
 		System.out.println("old photo size - "+oldColumns+"X"+oldRows);
 		System.out.println("new photo size - "+newColumns+"X"+newRows);
-=======
 
-		System.out.println("procedure initiated");
-
->>>>>>> origin/master
 		// create outImge:
 		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
 
@@ -85,7 +81,7 @@ public class Seamcarv {
 		return ans;
 	}
 
-	private static void cutSeams(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
+	private static void cutSeams2(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
 		int width = iNimg.getWidth();
 		int hight = iNimg.getHeight();
 		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
@@ -109,10 +105,9 @@ public class Seamcarv {
 			}
 		}
 	}
-<<<<<<< HEAD
-=======
 
-	private static void cutSeams2(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
+
+	private static void cutSeams(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
 		int width = iNimg.getWidth();
 		int height = iNimg.getHeight();
 		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
@@ -136,7 +131,7 @@ public class Seamcarv {
 		}
 	}
 
->>>>>>> origin/master
+
 	private static void addSeams(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
