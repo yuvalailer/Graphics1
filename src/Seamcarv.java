@@ -31,7 +31,8 @@ public class Seamcarv {
 		SeamMap[] seammap = new SeamMap[oldColumns];
 		
 		System.out.println("procedure initiated");  
-		
+		System.out.println("old photo size - "+oldColumns+"X"+oldRows);
+		System.out.println("new photo size - "+newColumns+"X"+newRows);
 		// create outImge:
 		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
 
@@ -83,21 +84,24 @@ public class Seamcarv {
 		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
 		// // TODO - is this the right dimm order..
 		boolean edit = true;
-		for (int i = 0; i < hight; i++)
-			for (int j = 0; j < width; j++) { // TODO - dimensions
+		int M;
+		for (int i = 0; i < width; i++) {
+			M = 0;
+			for (int j = 0; j < hight; j++) { // TODO - dimensions
 				for (int j2 = 0; j2 < size; j2++) {
 					if (j == seammap[j2].index) {
 						edit = false;
 					}
 				}
 				if (edit) {
-					oUTimg.setRGB(i, j, iNimg.getRGB(i, j));
+					oUTimg.setRGB(i, M, iNimg.getRGB(i, j));
+					M++;
 				} else {
 					continue;
 				}
 			}
+		}
 	}
-
 	private static void addSeams(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
