@@ -19,7 +19,6 @@ public class Seamcarv {
 		int newRows = Integer.parseInt(args[2]);
 		int type = Integer.parseInt(args[3]);
 		File OUTfile = new File(args[4]);
-		SeamMap[] seammap = new SeamMap[]{};
 
 		// create image:
 		BufferedImage INimg = ImageIO.read(INfile);
@@ -27,7 +26,10 @@ public class Seamcarv {
 		// get image dimensions:
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
-
+		SeamMap[] seammap = new SeamMap[oldColumns];
+		
+		System.out.println("procedure initiated");  
+		
 		// create outImge:
 		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
 
@@ -43,9 +45,11 @@ public class Seamcarv {
 		cutSeams(INimg, seammap, size, OUTimg);
 
 		// write back the new Image:
-
 		ImageIO.write(OUTimg, "???", OUTfile); // TODO - "???"
-
+		
+		//print all done
+		System.out.println("all done. please enter your diractory to view your new photo.. ");
+		 
 	} // end of main
 
 	private static void calculateSeamMap(float[][] energyMatrix, SeamMap[] seammap) {
