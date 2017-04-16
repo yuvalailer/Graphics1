@@ -19,7 +19,9 @@ public class Seamcarv {
 		int newRows = Integer.parseInt(args[2]);
 		int type = Integer.parseInt(args[3]);
 		File OUTfile = new File(args[4]);
-
+		boolean fd = OUTfile.createNewFile();
+		// TODO err
+		
 		// create image:
 		BufferedImage INimg = ImageIO.read(INfile);
 
