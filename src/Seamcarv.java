@@ -28,7 +28,7 @@ public class Seamcarv {
 		// get image dimensions:
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
-		SeamMap[] seammap = new SeamMap[oldColumns];
+		SeamMap seammap = new SeamMap();
 
 		System.out.println("procedure initiated");
 		System.out.println("old photo size - " + oldColumns + "X" + oldRows);
@@ -38,40 +38,44 @@ public class Seamcarv {
 		float[][] energyMatrix = energyCal(INimg, type);
 
 		// Calculate map:
-		calculateSeamMap(energyMatrix, seammap);
+		dynamicSeam(energyMatrix);
 
 		// create outImge:
 		BufferedImage colIMG = new BufferedImage(newColumns, oldRows, INimg.getType());
-		
+		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
+		BufferedImage transIMG = new BufferedImage(oldRows, newColumns, INimg.getType());
+		BufferedImage transOUT = new BufferedImage(newRows, newColumns, INimg.getType());
+
 		int colSize = oldColumns - newColumns;
 		int rowSize = oldRows - newRows;
-		
-		// remove seams:
-		if (colSize >= 0) {
-			cutSeams(INimg, seammap, colSize, colIMG);
-		} else if (colSize < 0) {
-			addSeams(INimg, seammap, Math.abs(colSize), colIMG);
+
+		for (int i = 0; i < Math.abs(colSize); i++) {
+			// remove seams:
+			if (colSize >= 0) {
+				cutSeams(INimg, seammap, 1, colIMG);
+			} else if (colSize < 0) {
+				addSeams(INimg, seammap, 1, colIMG);
+			}
+			energyMatrix = energyCal(colIMG, type);
+			dynamicSeam(energyMatrix);
 		}
-		
-		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
+
 		if (rowSize != 0) {
-			
-			BufferedImage transIMG = new BufferedImage(oldRows, newColumns, INimg.getType());
-			BufferedImage transOUT = new BufferedImage(newRows, newColumns, INimg.getType());
-			transIMG = transposeIMG(colIMG);
-			
-			energyMatrix = energyCal(transIMG, type);
-			// Calculate map:
-			calculateSeamMap(energyMatrix, seammap);
-			
-			if (rowSize > 0) {
-				cutSeams(transIMG, seammap, rowSize, transOUT);
-			} else if (rowSize < 0) {
-				addSeams(transIMG, seammap, Math.abs(rowSize), transOUT);
+
+			transIMG = transposeIMG(colIMG);	
+			for (int i = 0; i < Math.abs(rowSize); i++) {
+				energyMatrix = energyCal(transIMG, type);
+				// Calculate map:
+				dynamicSeam(energyMatrix);
+				
+				if (rowSize > 0) {
+					cutSeams(transIMG, seammap, 1, transOUT);
+				} else if (rowSize < 0) {
+					addSeams(transIMG, seammap, 1, transOUT);
+				}
 			}
 			OUTimg = transposeIMG(transOUT);
-		}
-		else {
+		} else {
 			OUTimg = colIMG;
 		}
 
@@ -83,10 +87,8 @@ public class Seamcarv {
 
 	} // end of main
 
-	
 	////////////////////////////////////////////////////////////////////////////////////
-	
-	
+
 	private static float[][] transposeMAT(float[][] energyMatrix) {
 		float[][] outMAT = new float[energyMatrix[0].length][energyMatrix.length];
 		for (int i = 0; i < energyMatrix.length; i++) {
@@ -109,26 +111,24 @@ public class Seamcarv {
 		return OUTimg;
 	}
 
-	private static void calculateSeamMap(float[][] energyMatrix, SeamMap[] seammap) {
-		// calculate seams dynamically:
-		for (int i = 0; i < energyMatrix.length; i++) { // Iterate over the
-														// map's bottom row.
-			seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in
-														// a dynamic form
-		}
-		// sort by energy:
-		Arrays.sort(seammap); // sort map by energy
-	}
+	/*
+	 * private static void calculateSeamMap(float[][] energyMatrix, SeamMap[]
+	 * seammap) { // calculate seams dynamically: for (int i = 0; i <
+	 * energyMatrix.length; i++) { // Iterate over the // map's bottom row.
+	 * seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in // a
+	 * dynamic form } // sort by energy: Arrays.sort(seammap); // sort map by
+	 * energy }
+	 */
 
-	private static SeamMap dynamicSeam(float[][] energyMatrix, int i) {
-		// SeamMap ans = null;
-		int totalColumnEnergy = 0;
-		int[] sortPath = null;
-
-		for (int j = (energyMatrix[0].length - 1); j >= 0; j--) {
-			totalColumnEnergy += energyMatrix[i][j];
-		}
-		SeamMap ans = new SeamMap(totalColumnEnergy, i, sortPath);
+	private static SeamMap dynamicSeam(float[][] energyMatrix) {
+		SeamMap ans = null;
+		// int totalColumnEnergy = 0;
+		// int[] sortPath = null;
+		//
+		// for (int j = (energyMatrix[0].length - 1); j >= 0; j--) {
+		// totalColumnEnergy += energyMatrix[i][j];
+		// }
+		// SeamMap ans = new SeamMap(totalColumnEnergy, i, sortPath);
 		return ans;
 	}
 
@@ -157,7 +157,7 @@ public class Seamcarv {
 		}
 	}
 
-	private static void cutSeams(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
+	private static void cutSeams(BufferedImage iNimg, SeamMap seammap, int size, BufferedImage oUTimg) {
 		int width = iNimg.getWidth();
 		int height = iNimg.getHeight();
 		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
@@ -166,7 +166,7 @@ public class Seamcarv {
 		int diff = 0;
 		for (int i = 0; i < width; i++) {
 			for (int k = 0; k < size; k++) {
-				if (i == seammap[k].index) {
+				if (i == seammap.index) {
 					edit = true;
 				}
 			}
@@ -181,14 +181,14 @@ public class Seamcarv {
 		}
 	}
 
-	private static void addSeams(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
+	private static void addSeams(BufferedImage inImg, SeamMap seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
 		int diff = 0;
 		boolean edit = false;
 		for (int i = 0; i < width + size; i++) {
 			for (int k = 0; k < size; k++) {
-				if ((i - diff) == seammap[k].index) {
+				if ((i - diff) == seammap.index) {
 					edit = true;
 					break;
 				}
