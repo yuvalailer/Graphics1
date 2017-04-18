@@ -28,61 +28,79 @@ public class Seamcarv {
 		// get image dimensions:
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
-		SeamMap[] seammap = new SeamMap[oldColumns];
+		SeamMap seammap = new SeamMap();
 
+		System.out.println("procedure initiated");
+		System.out.println("old photo size - " + oldColumns + "X" + oldRows);
+		System.out.println("new photo size - " + newColumns + "X" + newRows);
 
-		System.out.println("procedure initiated");  
-		System.out.println("old photo size - "+oldColumns+"X"+oldRows);
-		System.out.println("new photo size - "+newColumns+"X"+newRows);
-
-		// create outImge:
-		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
-		//BufferedImage OUTimg = new BufferedImage(oldColumns, oldRows, INimg.getType());
 		// get energy matrix:
 		float[][] energyMatrix = energyCal(INimg, type);
 
 		// Calculate map:
-		calculateSeamMap(energyMatrix, seammap);
+		dynamicSeam(energyMatrix);
 
-		// remove seams:
+		// create outImge:
+		BufferedImage colIMG = new BufferedImage(newColumns, oldRows, INimg.getType());
+		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
+		BufferedImage transIMG = new BufferedImage(oldRows, newColumns, INimg.getType());
+		BufferedImage transOUT = new BufferedImage(newRows, newColumns, INimg.getType());
 
-		int size = oldColumns - newColumns; // TODO - vertical vs horizontal ?
-		cutSeams(INimg, seammap, size, OUTimg);
-		System.out.println("size of new image is: " + OUTimg.getHeight() + " " + OUTimg.getWidth());
+		int colSize = oldColumns - newColumns;
+		int rowSize = oldRows - newRows;
+
+		for (int i = 0; i < Math.abs(colSize); i++) {
+			// remove seams:
+			if (colSize >= 0) {
+				cutSeams(INimg, seammap, 1, colIMG);
+			} else if (colSize < 0) {
+				addSeams(INimg, seammap, 1, colIMG);
+			}
+			energyMatrix = energyCal(colIMG, type);
+			dynamicSeam(energyMatrix);
+		}
+
+		if (rowSize != 0) {
+
+			transIMG = transposeIMG(colIMG);	
+			for (int i = 0; i < Math.abs(rowSize); i++) {
+				energyMatrix = energyCal(transIMG, type);
+				// Calculate map:
+				dynamicSeam(energyMatrix);
+
+				if (rowSize > 0) {
+					cutSeams(transIMG, seammap, 1, transOUT);
+				} else if (rowSize < 0) {
+					addSeams(transIMG, seammap, 1, transOUT);
+				}
+			}
+			OUTimg = transposeIMG(transOUT);
+		} else {
+			OUTimg = colIMG;
+		}
 
 		// write back the new Image:
 		ImageIO.write(OUTimg, "jpg", OUTfile); // TODO - "???"
 
 		// print all done
-		System.out.println("all done. please enter your diractory to view your new photo.. ");
+		System.out.println("all done. please enter your directory to view your new photo.. ");
 
 	} // end of main
 
-	private static void calculateSeamMap(float[][] energyMatrix, SeamMap[] seammap) {
-		// calculate seams dynamically:
-		for (int i = 0; i < energyMatrix.length; i++) { // Iterate over the
-			// map's bottom row.
-			seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in
-			// a dynamic form
-		}
-		// sort by energy:
-		Arrays.sort(seammap); // sort map by energy
-	}
+	////////////////////////////////////////////////////////////////////////////////////
 
-	private static SeamMap dynamicSeam2(float[][] energyMatrix, int i) {
-		// SeamMap ans = null;
-		int totalColumnEnergy = 0;
-		int[] sortPath = null;
-
-		for (int j = (energyMatrix[0].length - 1); j >= 0; j--) {
-			totalColumnEnergy += energyMatrix[i][j];
+	private static float[][] transposeMAT(float[][] energyMatrix) {
+		float[][] outMAT = new float[energyMatrix[0].length][energyMatrix.length];
+		for (int i = 0; i < energyMatrix.length; i++) {
+			for (int j = 0; j < energyMatrix[0].length; j++) {
+				outMAT[j][i] = energyMatrix[i][j];
+			}
 		}
-		SeamMap ans = new SeamMap(totalColumnEnergy, i, sortPath);
-		return ans;
+		return outMAT;
 	}
 
 
-	private static SeamMap dynamicSeam(float[][] energyMatrix, int i) {
+	private static SeamMap dynamicSeam(float[][] energyMatrix) {
 		int totalColumnEnergy = 0;
 		int[] sortPath = new int[energyMatrix[0].length];
 		int minIndex = 0;
@@ -132,11 +150,11 @@ public class Seamcarv {
 
 		// fill the energy to be infinity (to avoid repetition)
 
-//		for (int j = 0; j < sortPath.length; j++) {
-//			energyMatrix[sortPath[j]][j] = -1; // fill with max float.
-//		}
+		//		for (int j = 0; j < sortPath.length; j++) {
+		//			energyMatrix[sortPath[j]][j] = -1; // fill with max float.
+		//		}
 		int value = totalColumnEnergy;
-//		}
+		//		}
 		SeamMap ans = new SeamMap(value, sortPath[0], sortPath);
 		return ans;
 	}
@@ -166,12 +184,31 @@ public class Seamcarv {
 				}
 				edit = true;
 			}
-			T = 0; // zero T.
 		}
 	}
 
+	private static BufferedImage transposeIMG(BufferedImage iNimg) {
+		int height = iNimg.getHeight();
+		int width = iNimg.getWidth();
+		BufferedImage OUTimg = new BufferedImage(height, width, iNimg.getType());
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				OUTimg.setRGB(j, i, iNimg.getRGB(i, j));
+			}
+		}
+		return OUTimg;
+	}
 
-	private static void cutSeams(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
+	/*
+	 * private static void calculateSeamMap(float[][] energyMatrix, SeamMap[]
+	 * seammap) { // calculate seams dynamically: for (int i = 0; i <
+	 * energyMatrix.length; i++) { // Iterate over the // map's bottom row.
+	 * seammap[i] = dynamicSeam(energyMatrix, i); // Calculate the seams in // a
+	 * dynamic form } // sort by energy: Arrays.sort(seammap); // sort map by
+	 * energy }
+	 */
+
+	private static void cutSeams(BufferedImage iNimg, SeamMap seammap, int size, BufferedImage oUTimg) {
 		int width = iNimg.getWidth();
 		int height = iNimg.getHeight();
 		boolean edit = true;
@@ -179,73 +216,36 @@ public class Seamcarv {
 
 		for (int i = 0; i < height; i++) { // how many rows
 			for (int j = 0; j < width; j++) { // how many columns   // dims on purpose
-				for (int k = 0; k < size; k++) {
-
-					if(j == seammap[k].way[i]){ // if [][X][][] on the i level is on the 'to be deleted' list. 
-						edit = false;
-						break;
-					}
-
-				} // end of k
-
+				if(j != seammap.way[i]) { // if [][X][][] on the i level is on the 'to be deleted' list. 
 				// do changes:
-				if (edit) {					
 					oUTimg.setRGB(T,i, iNimg.getRGB(j, i));
-					T++; // over 400 
-
-//										if(T == oUTimg.getWidth()){
-//											break;
-//										}
+					T++;
 				}
-				edit = true;
-			}
-			T = 0; // zero T.
-		}
+			}//J
+		} // i
 	}
 
 
-	private static void cutSeams2(BufferedImage iNimg, SeamMap[] seammap, int size, BufferedImage oUTimg) {
-		int width = iNimg.getWidth();
-		int height = iNimg.getHeight();
-		// int[][] matrix = new int[iNimg.getWidth() - size][iNimg.getHeight()];
-		// // TODO - is this the right dimm order..
-		boolean edit = false;
-		int diff = 0;
-		for (int i = 0; i < width; i++) {
-			for (int k = 0; k < size; k++) {
-				if (i == seammap[k].index) {
-					edit = true;
-				}
-			}
-			if (!edit) {
-				for (int j = 0; j < height; j++) { // TODO - dimensions
-					oUTimg.setRGB(i - diff, j, iNimg.getRGB(i, j));
-				}
-			} else {
-				diff++;
-				edit = false;
-			}
-		}
-	}
-
-
-	private static void addSeams(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
+	private static void addSeams(BufferedImage inImg, SeamMap seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
 		int diff = 0;
 		boolean edit = false;
 		for (int i = 0; i < width + size; i++) {
 			for (int k = 0; k < size; k++) {
-				if (i == seammap[k].index) {
+				if ((i - diff) == seammap.index) {
 					edit = true;
 					break;
 				}
 			}
+
 			for (int j = 0; j < height; j++) {
 				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
-				if (edit == true) {
-					i++;
-					diff++;
+			}
+			if (edit == true) {
+				i++;
+				diff++;
+				for (int j = 0; j < height; j++) {
 					outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
 				}
 			}
@@ -256,25 +256,42 @@ public class Seamcarv {
 	private static void addSeamsAlt(BufferedImage inImg, SeamMap[] seammap, int size, BufferedImage outImg) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
-		int diff = 0, avgRGB = 0;
+		int diff = 0, avgRGB = 0, r0 = 0, r1 = 0, r2 = 0, g0 = 0, g1 = 0, g2 = 0, b0 = 0, b1 = 0, b2 = 0;
+		int RGB0 = 0, RGB1 = 0, RGB2 = 0, rAVG = 0, gAVG = 0, bAVG = 0;
 		boolean edit = false;
 		for (int i = 0; i < width + size; i++) {
 			for (int k = 0; k < size; k++) {
-				if (i == seammap[k].index) {
+				if ((i - diff) == seammap[k].index) {
 					edit = true;
 					break;
 				}
 			}
 			for (int j = 0; j < height; j++) {
 				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
-				if (edit == true) {
-					i++;
-					diff++;
-					if ((i - diff - 1 != 0) && (i - diff + 1 != width)) {
-						avgRGB = (inImg.getRGB(i - diff - 1, j) + inImg.getRGB(i - diff, j)
-						+ inImg.getRGB(i - diff + 1, j)) / 3;
+			}
+			if (edit == true) {
+				i++;
+				diff++;
+				if ((i - diff - 1 != 0) && (i - diff + 1 != width)) {
+					for (int j = 0; j < height; j++) {
+						RGB0 = inImg.getRGB(i - diff - 1, j);
+						RGB1 = inImg.getRGB(i - diff, j);
+						RGB2 = inImg.getRGB(i - diff + 1, j);
+						r0 = (RGB0 >> 16) & 0xff;
+						g0 = (RGB0 >> 8) & 0xff;
+						b0 = (RGB0) & 0xff;
+						r1 = (RGB1 >> 16) & 0xff;
+						g1 = (RGB1 >> 8) & 0xff;
+						b1 = (RGB1) & 0xff;
+						r2 = (RGB2 >> 16) & 0xff;
+						g2 = (RGB2 >> 8) & 0xff;
+						b2 = (RGB2) & 0xff;
+						rAVG = (r0 + r1 + r2) / 3;
+						gAVG = (g0 + g1 + g2) / 3;
+						bAVG = (b0 + b1 + b2) / 3;
+						avgRGB = ((rAVG & 0x0ff) << 16) | ((gAVG & 0x0ff) << 8) | (bAVG & 0x0ff);
+						outImg.setRGB(i, j, avgRGB);
 					}
-					outImg.setRGB(i, j, avgRGB);
 				}
 			}
 			edit = false;
@@ -351,7 +368,7 @@ public class Seamcarv {
 				k = 0;
 			if (k > (img.getWidth() - 1))
 				break;
-			for (int l = j - 4; l < j + 5; j++) {
+			for (int l = j - 4; l < j + 5; l++) {
 				if (l < 0)
 					l = 0;
 				if (l > (img.getHeight() - 1))
@@ -370,7 +387,7 @@ public class Seamcarv {
 				k = 0;
 			if (k > (img.getWidth() - 1))
 				break;
-			for (int l = j - 4; l < j + 5; j++) {
+			for (int l = j - 4; l < j + 5; l++) {
 				if (l < 0)
 					l = 0;
 				if (l > (img.getHeight() - 1))
