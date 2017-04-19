@@ -1,9 +1,5 @@
 import javax.imageio.ImageIO;
-import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.io.File;
 import java.io.IOException;
 
@@ -106,8 +102,8 @@ public class Seamcarv {
 		return outMAT;
 	}
 
-	
-	
+
+
 	private static float getDifference(BufferedImage image, int i1, int j1, int i2, int j2) {
 		int RGB1 = image.getRGB(i1, j1);
 		int r1 = (RGB1 >> 16) & 0xff;
@@ -124,11 +120,11 @@ public class Seamcarv {
 	private static float CU(BufferedImage image, int i, int j) {
 		return (getDifference(image, i+1, j, i-1, j));
 	}
-	
+
 	private static float CR(BufferedImage image, int i, int j) {
 		return (getDifference(image, i+1, j, i-1, j)) + (getDifference(image, i, j-1, i+1, j));
 	}
-	
+
 	private static float CL(BufferedImage image, int i, int j) {
 		return (getDifference(image, i+1, j, i-1, j)) + (getDifference(image, i, j-1, i+1, j));
 	}
@@ -139,32 +135,52 @@ public class Seamcarv {
 		int minIndex = 0;
 		int iterIndex = 0;
 		int iterMin = 0;
-		for (int j = 0; j < energyMatrix.length; j++) { // iterate over the last
-														// row
-			if (((energyMatrix[j][energyMatrix[0].length - 1]) < (energyMatrix[minIndex][energyMatrix[0].length
-					- 1]))) { // choose the minimal
+		float[][] memoMatrix = new float[energyMatrix.length][energyMatrix[0].length]; 
+		// Preparation
+		for (int i = 0; i < memoMatrix.length; i++) {
+			memoMatrix[i][0] = energyMatrix[i][0]; 			// fill first line with the energy prameters
+		}
+		for (int i = 0; i < memoMatrix.length; i++) { //X
+			for (int j = 1; j < memoMatrix[0].length - 1; j++) {//Y
+				memoMatrix[i][j+1] = memoMatrix[i][j] + energyMatrix[i][j+1]; // [ ][A][ ]
+																			  // [ ][B][ ]
+				
+						if( i > 0 ) { 																		// [ ][A][ ]
+							if(memoMatrix[i-1][j+1] > energyMatrix[i-1][j+1] + memoMatrix[i][j] ){   		// [B][ ][ ]
+								memoMatrix[i-1][j+1] = energyMatrix[i-1][j+1] + memoMatrix[i][j];
+							}
+						}
+						if(i < memoMatrix.length - 1){
+							if(memoMatrix[i+1][j+1] > energyMatrix[i+1][j+1] + memoMatrix[i][j] ){   		// [A][ ][ ]
+								memoMatrix[i+1][j+1] = energyMatrix[i+1][j+1] + memoMatrix[i][j];			// [ ][B][ ]
+							}
+						}
+			}
+		} 
+
+
+		// selection
+		for (int j = 0; j < memoMatrix.length; j++) { // iterate over the last
+			// row
+			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length
+			                                                                             - 1]))) { // choose the minimal
 				minIndex = j; // replace minimal index
 			}
 		} // minimal chosen
 
-		sortPath[energyMatrix[0].length - 1] = minIndex; // minimal index as
-															// last index.
-		totalColumnEnergy += (int) energyMatrix[minIndex][energyMatrix[0].length - 1]; // add
-																						// weight
+		sortPath[memoMatrix[0].length - 1] = minIndex; // minimal index as
+		// last index.
+		totalColumnEnergy += (int) memoMatrix[minIndex][memoMatrix[0].length - 1]; // add
+		// weight
 		iterIndex = minIndex; // set iteration index as the minimal index yet.
 
-		for (int j = (energyMatrix[0].length - 2); j >= 0; j--) { // iterate
-																	// over the
-																	// y axis
-			if ((iterIndex > 0) && (iterIndex < energyMatrix.length - 1)) { // not
-																			// at
-																			// the
-																			// edges.
+		for (int j = (memoMatrix[0].length - 2); j >= 0; j--) { // iterate
+			// over the
+			// y axis
+			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { // not at the edges.
 				iterMin = iterIndex - 1;
 				for (int simp = -1; simp < 2; simp++) {
-					if (((energyMatrix[iterMin][j]) > (energyMatrix[iterIndex + simp][j]))) { // choose
-																								// minimal
-																								// neighbor
+					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) {	// choose minimal neighbor
 						iterMin = iterIndex + simp; // change minimal
 					}
 				}
@@ -172,19 +188,19 @@ public class Seamcarv {
 				if (iterIndex == 0) { // right edge.
 					iterMin = 0;
 					for (int simp = 0; simp < 2; simp++) {
-						if (((energyMatrix[iterMin][j]) > (energyMatrix[iterIndex + simp][j]))) { // choose
-																									// minimal
-																									// neighbor
+						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
+							// minimal
+							// neighbor
 							iterMin = iterIndex + simp; // change minimal
 						}
 					}
 				} else { // left edge
-					iterMin = energyMatrix.length - 2;
+					iterMin = memoMatrix.length - 2;
 					for (int simp = -1; simp < 1; simp++) {
-						if (((energyMatrix[iterMin][j]) > (energyMatrix[iterIndex + simp][j]))) { // choose
-																									// minimal
-																									// //
-																									// neighbor
+						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
+							// minimal
+							// //
+							// neighbor
 							iterMin = iterIndex + simp; // change minimal
 						}
 					}
@@ -193,7 +209,7 @@ public class Seamcarv {
 			}
 			// minimal Index chosen (in iterMin)
 			sortPath[j] = iterMin; // add to path
-			totalColumnEnergy += energyMatrix[iterMin][j]; // sum weight
+			totalColumnEnergy += memoMatrix[iterMin][j]; // sum weight
 			iterIndex = iterMin; // Replace the iteration pointer.
 		} // finished all Y axis.
 
@@ -212,16 +228,15 @@ public class Seamcarv {
 		int width = iNimg.getWidth();
 		int height = iNimg.getHeight();
 		boolean edit = true;
-		int T = 0;
 
 		for (int i = 0; i < height; i++) { // how many rows
 			for (int j = 0; j < width; j++) { // how many columns // dims on
-												// purpose
+				// purpose
 				for (int k = 0; k < size; k++) {
 
 					if (j == seammap[k].way[i]) { // if [][X][][] on the i level
-													// is on the 'to be deleted'
-													// list.
+						// is on the 'to be deleted'
+						// list.
 						edit = false;
 						break;
 					}
@@ -264,7 +279,6 @@ public class Seamcarv {
 	private static BufferedImage cutSeams(BufferedImage iNimg, SeamMap seammap, int size) {
 		int width = iNimg.getWidth();
 		int height = iNimg.getHeight();
-		boolean edit = true;
 		int T = 0;
 		BufferedImage OUTimg = new BufferedImage(width - 1, height, iNimg.getType());
 		// System.out.println(width);
@@ -272,7 +286,7 @@ public class Seamcarv {
 			for (int j = 0; j < width; j++) { // how many rows
 				// System.out.println("i: " + i + " j: " + j); // purpose
 				if (j != seammap.way[i]) { // if [][X][][] on the i level is on
-											// the 'to be deleted' list.
+					// the 'to be deleted' list.
 					// do changes:
 					OUTimg.setRGB(j - T, i, iNimg.getRGB(j, i));
 				} else {
@@ -288,7 +302,6 @@ public class Seamcarv {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
 		int diff = 0;
-		boolean edit = false;
 		BufferedImage outImg = new BufferedImage(width + 1, height, inImg.getType());
 		for (int j = 0; j < height; j++) {
 			for (int i = 0; i < width + size; i++) {
@@ -309,7 +322,6 @@ public class Seamcarv {
 		int width = inImg.getWidth();
 		int diff = 0, avgRGB = 0, r0 = 0, r1 = 0, r2 = 0, g0 = 0, g1 = 0, g2 = 0, b0 = 0, b1 = 0, b2 = 0;
 		int RGB0 = 0, RGB1 = 0, RGB2 = 0, rAVG = 0, gAVG = 0, bAVG = 0;
-		boolean edit = false;
 		BufferedImage outImg = new BufferedImage(width + 1, height, inImg.getType());
 		for (int j = 0; j < height; j++) {
 			for (int i = 0; i < width + size; i++) {
@@ -344,11 +356,11 @@ public class Seamcarv {
 	}
 
 	//
-	
-	public static float[][] energyCal(BufferedImage img, int type) {
+
+	public static float[][] energyCalForward(BufferedImage img, int type) {
 		float[][] mat = new float[img.getWidth()][img.getHeight()];
 		float min = 0;
-		
+
 		for (int i=1; i < img.getWidth()-1; i++) {
 			mat[i][0] = CU(img, i, 0);
 		}
@@ -356,7 +368,7 @@ public class Seamcarv {
 			mat[0][i] = 1000;
 			mat[img.getWidth()-1][i] = 1000;
 		}
-		
+
 		for (int j = 1; j < img.getHeight()-1; j++) {
 			for (int i = 1; i < img.getWidth()-1; i++) {
 				min = mat[i-1][j] + CU(img, i, j);
@@ -368,12 +380,12 @@ public class Seamcarv {
 				}
 				mat[i][j] = min;
 			}
-			
+
 		}
 		return mat;
 	}
-	
-	public static float[][] energyCalORiginal(BufferedImage img, int type) {
+
+	public static float[][] energyCal(BufferedImage img, int type) {
 
 		int height = img.getHeight();
 		int width = img.getWidth();
