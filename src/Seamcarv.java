@@ -8,13 +8,15 @@ public class Seamcarv {
 	
 	public static void main(String[] args) throws IOException {
 		// parse arguments:
-		File INfile = (new File(args[0]));
-		int newColumns = Integer.parseInt(args[1]);
-		int newRows = Integer.parseInt(args[2]);
-		int type = Integer.parseInt(args[3]);
-		File OUTfile = new File(args[4]);
-		boolean fd = OUTfile.createNewFile();
-		// TODO err
+		File INfile = (new File(args[0]));          // name of input file 
+		int newColumns = Integer.parseInt(args[1]); // the new number of columns
+		int newRows = Integer.parseInt(args[2]);	// the new number of rows
+		int type = Integer.parseInt(args[3]);		// type of energy function. 0 = regular, 1 = entropy, 2 = forwarding
+		File OUTfile = new File(args[4]);			// the output file 
+		boolean fd = OUTfile.createNewFile();		// check
+		if(fd == false) {
+			System.err.println("failed to create the output file");
+		}
 
 		// create image:
 		BufferedImage INimg = ImageIO.read(INfile);
@@ -27,7 +29,7 @@ public class Seamcarv {
 
 		float[][] energyMatrix = new float[oldColumns][oldRows];
 
-		System.out.println("Procedure Initiated");
+		System.out.println("Procedure Initiated");								// prints for aid user understanding.
 		System.out.println("Old photo size: " + oldColumns + "X" + oldRows);
 		System.out.println("New photo size: " + newColumns + "X" + newRows);
 
@@ -173,14 +175,14 @@ public class Seamcarv {
 	}
 	
 	
-	private static SeamMap[] iterDynamic(float[][] energyMatrix, int size) {
-		SeamMap[] seammap = new SeamMap[size];
-		SeamMap itSeam = new SeamMap();
+	private static SeamMap[] iterDynamic(float[][] energyMatrix, int size) {	// find the needed number of the best seams. for adding. 
+		SeamMap[] seammap = new SeamMap[size];									// array of best seams 
+		SeamMap itSeam = new SeamMap();											// current best seam 
 
 		for (int i = 0; i < seammap.length; i++) {
-			itSeam = dynamicSeam(energyMatrix);
-			for (int j = 0; j < energyMatrix[0].length; j++) {
-				energyMatrix[itSeam.way[j]][j] = 255;
+			itSeam = dynamicSeam(energyMatrix);									// find best seam 
+			for (int j = 0; j < energyMatrix[0].length; j++) {					//
+				energyMatrix[itSeam.way[j]][j] = 255;							// color it with worst energy possible
 			}
 			seammap[i] = itSeam;
 		}
