@@ -184,106 +184,84 @@ public class Seamcarv {
 			for (int j = 0; j < energyMatrix[0].length; j++) {					//
 				energyMatrix[itSeam.way[j]][j] = 255;							// color it with worst energy possible
 			}
-			seammap[i] = itSeam;
+			seammap[i] = itSeam;												//add current best seam to its place in the array 
 		}
-		return seammap;
+		return seammap;															// return array	
 	}
 
-	private static SeamMap dynamicSeam(float[][] energyMatrix) {
-		int totalColumnEnergy = 0;
-		int[] sortPath = new int[energyMatrix[0].length];
-		int minIndex = 0;
-		int iterIndex = 0;
-		int iterMin = 0;
-		float[][] memoMatrix = new float[energyMatrix.length][energyMatrix[0].length];
+	private static SeamMap dynamicSeam(float[][] energyMatrix) {				// calculate the best seam in picture by dynamic programming
+		int totalColumnEnergy = 0;												// seam's accumulative weight
+		int[] sortPath = new int[energyMatrix[0].length];						// to be the shortest path 
+		int minIndex = 0;														// current minimal index
+		int iterIndex = 0;														// the whole iteration's minimal index candidate
+		int iterMin = 0;														// the whole iteration's minimal index
+		float[][] memoMatrix = new float[energyMatrix.length][energyMatrix[0].length];	// weight memoization matrix 
 		// Preparation
-		for (int i = 0; i < memoMatrix.length; i++) {
-			memoMatrix[i][0] = energyMatrix[i][0]; // fill first line with the
-			// energy parameters
+		for (int i = 0; i < memoMatrix.length; i++) {						
+			memoMatrix[i][0] = energyMatrix[i][0]; 										// fill first line with the energy parameters
 		}
 		for (int j = 0; j < memoMatrix[0].length - 1; j++) {// Y
 			for (int i = 0; i < memoMatrix.length; i++) { // X
-				memoMatrix[i][j + 1] = memoMatrix[i][j] + energyMatrix[i][j + 1]; // [][A][]
-																					// [][B][]
+				memoMatrix[i][j + 1] = memoMatrix[i][j] + energyMatrix[i][j + 1]; 		// [][A][] fill B's new weight with A's
+																						// [][B][] if filling improves its weight
 
-				if (i > 0) { // [ ][A][ ]
-					if (memoMatrix[i - 1][j + 1] > energyMatrix[i - 1][j + 1] + memoMatrix[i][j]) { // [B][
-																									// ][
-																									// ]
+				if (i > 0) { 																		// [ ][A][ ]
+					if (memoMatrix[i - 1][j + 1] > energyMatrix[i - 1][j + 1] + memoMatrix[i][j]) { // [B][ ][ ]
 						memoMatrix[i - 1][j + 1] = energyMatrix[i - 1][j + 1] + memoMatrix[i][j];
 					}
-					if (memoMatrix[i][j + 1] > energyMatrix[i][j + 1] + memoMatrix[i - 1][j]) { // [A][X][
-																								// ]
-						memoMatrix[i][j + 1] = energyMatrix[i][j + 1] + memoMatrix[i - 1][j]; // [
-																								// ][B][
-					} // ]
+					if (memoMatrix[i][j + 1] > energyMatrix[i][j + 1] + memoMatrix[i - 1][j]) { // [A][X][ ]
+						memoMatrix[i][j + 1] = energyMatrix[i][j + 1] + memoMatrix[i - 1][j]; 	// [ ][B][ ]
+					} 
 				}
 			}
 		}
 
 		// selection
-		for (int j = 0; j < memoMatrix.length; j++) { // iterate over the last
-			// row
-			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length - 1]))) { // choose
-				// the
-				// minimal
-				minIndex = j; // replace minimal index
+		for (int j = 0; j < memoMatrix.length; j++) { 																// iterate over the last row
+			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length - 1]))) { 	// choose the minimal
+				minIndex = j; 																						// replace minimal index
 			}
 		} // minimal chosen
 
-		sortPath[memoMatrix[0].length - 1] = minIndex; // minimal index as
-		// last index.
-		totalColumnEnergy += (int) memoMatrix[minIndex][memoMatrix[0].length - 1]; // add
-		// weight
-		iterIndex = minIndex; // set iteration index as the minimal index yet.
+		sortPath[memoMatrix[0].length - 1] = minIndex; 													// minimal index as last index.
+		totalColumnEnergy += (int) memoMatrix[minIndex][memoMatrix[0].length - 1]; 						// add weight
+		iterIndex = minIndex; 																			// set iteration index as the minimal index yet.
 
-		for (int j = (memoMatrix[0].length - 2); j >= 0; j--) { // iterate
-			// over the
-			// y axis
-			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { // not
-				// at
-				// the
-				// edges.
+		for (int j = (memoMatrix[0].length - 2); j >= 0; j--) { 										// iterate over the y axis
+			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { 								// not at the edges 
 				iterMin = iterIndex - 1;
 				for (int simp = -1; simp < 2; simp++) {
-					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
-						// minimal
-						// neighbor
-						iterMin = iterIndex + simp; // change minimal
+					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { 				// choose minimal neighbor
+						iterMin = iterIndex + simp; 													// change minimal
 					}
 				}
 			} else {
-				if (iterIndex == 0) { // right edge.
-					iterMin = 0;
-					for (int simp = 0; simp < 2; simp++) {
-						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
-							// minimal
-							// neighbor
-							iterMin = iterIndex + simp; // change minimal
+				if (iterIndex == 0) { 																	// right edge.
+					iterMin = 0;																		// zero minimal 
+					for (int simp = 0; simp < 2; simp++) {												// compare
+						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) {			// choose minimal neighbor
+							iterMin = iterIndex + simp;										 			// change minimal
 						}
 					}
-				} else { // left edge
-					iterMin = memoMatrix.length - 2;
-					for (int simp = -1; simp < 1; simp++) {
-						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
-							// minimal
-							// //
-							// neighbor
-							iterMin = iterIndex + simp; // change minimal
+				} else { 																				// left edge
+					iterMin = memoMatrix.length - 2;													// zero minimal
+					for (int simp = -1; simp < 1; simp++) {												// compare
+						if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { 			// choose minimal neighbor
+							iterMin = iterIndex + simp; 												// change minimal
 						}
 					}
 				}
 
 			}
 			// minimal Index chosen (in iterMin)
-			sortPath[j] = iterMin; // add to path
-			totalColumnEnergy += memoMatrix[iterMin][j]; // sum weight
-			iterIndex = iterMin; // Replace the iteration pointer.
-		} // finished all Y axis.
+			sortPath[j] = iterMin; 																		// add to path
+			totalColumnEnergy += memoMatrix[iterMin][j]; 												// sum weight
+			iterIndex = iterMin; 																		// Replace the iteration pointer.
+		} 																								// finished all Y axis.
 
-		int value = totalColumnEnergy;
-		SeamMap ans = new SeamMap(value, sortPath[0], sortPath);
-		return ans;
+		int value = totalColumnEnergy;																	// set value to total seam energy
+		SeamMap ans = new SeamMap(value, sortPath[0], sortPath);										// crate the seam 
+		return ans;																						// return it 
 	}
 
 
@@ -300,21 +278,20 @@ public class Seamcarv {
 	}
 
 
-	private static BufferedImage cutSeams(BufferedImage iNimg, SeamMap seammap, int size) {
-		int width = iNimg.getWidth();
-		int height = iNimg.getHeight();
+	private static BufferedImage cutSeams(BufferedImage iNimg, SeamMap seammap, int size) {	// cut the given seams 
+		int width = iNimg.getWidth();														// images width 
+		int height = iNimg.getHeight();														// images height 
 		int T = 0;
-		BufferedImage OUTimg = new BufferedImage(width - 1, height, iNimg.getType());
+		BufferedImage OUTimg = new BufferedImage(width - 1, height, iNimg.getType());		// Create output 
 		// System.out.println(width);
-		for (int i = 0; i < height; i++) { // how many columns // dims on
-			for (int j = 0; j < width; j++) { // how many rows
-				// System.out.println("i: " + i + " j: " + j); // purpose
-				if (j != seammap.way[i]) { // if [][X][][] on the i level is on
-					// the 'to be deleted' list.
+		for (int i = 0; i < height; i++) { 													// how many columns // dims on
+			for (int j = 0; j < width; j++) { 												// how many rows
+				if (j != seammap.way[i]) { 													// if [][X][][] on the i level is on
+																							// the 'to be deleted' list.
 					// do changes:
-					OUTimg.setRGB(j - T, i, iNimg.getRGB(j, i));
+					OUTimg.setRGB(j - T, i, iNimg.getRGB(j, i)); 							// copy if needed 
 				} else {
-					T++;
+					T++;																	// hold your position 
 				}
 			} // J
 			T = 0;
@@ -373,13 +350,13 @@ public class Seamcarv {
 		return energyArr;
 	}
 	
-	public static float[][] energyCalForward(BufferedImage img, int type) {
-		float[][] mat = new float[img.getWidth()][img.getHeight()];
+	public static float[][] energyCalForward(BufferedImage img, int type) { // the forward energy function 
+		float[][] mat = new float[img.getWidth()][img.getHeight()];			// answer matrix 
 		float min = 0;
 		for (int i = 1; i < img.getWidth() - 1; i++) {
-			mat[i][0] = CU(img, i, 0);
+			mat[i][0] = CU(img, i, 0);										// fill first line with the B type energy from paper 
 		}
-		for (int i = 0; i < img.getHeight(); i++) {
+		for (int i = 0; i < img.getHeight(); i++) {							// fill edges columns with max energy to avoid choosing them 
 			mat[0][i] = 255;
 			mat[img.getWidth() - 1][i] = 255;
 		}
@@ -387,18 +364,18 @@ public class Seamcarv {
 		for (int j = 1; j < img.getHeight() - 1; j++) {
 			for (int i = 1; i < img.getWidth() - 1; i++) {
 
-				min = mat[i - 1][j] + CU(img, i, j);
-				if (mat[i - 1][j - 1] + CL(img, i, j) < min) {
-					min = mat[i - 1][j - 1] + CL(img, i, j);
+				min = mat[i - 1][j] + CU(img, i, j);						// fill cell with the B type energy from paper
+				if (mat[i - 1][j - 1] + CL(img, i, j) < min) {				// Compare to A type energy from paper
+					min = mat[i - 1][j - 1] + CL(img, i, j);				// replace if needed
 				}
-				if (mat[i - 1][j + 1] + CR(img, i, j) < min) {
-					min = mat[i - 1][j + 1] + CR(img, i, j);
+				if (mat[i - 1][j + 1] + CR(img, i, j) < min) {				// Compare to A type energy from paper
+					min = mat[i - 1][j + 1] + CR(img, i, j);				// replace if needed
 				}
-				mat[i][j] = min;
+				mat[i][j] = min;											// set matrix to found minimal 
 			}
 
 		}
-		return mat;
+		return mat;															// return answer matrix 
 	}
 	
 	public static float entropy(BufferedImage img, int i, int j) {
