@@ -36,64 +36,65 @@ public class Seamcarv {
 		// get energy matrix:
 		if (type != 2) {
 			energyMatrix = energyCal(INimg, type);
-		} else {
+		} else { // with forwarding
 			energyMatrix = energyCalForward(INimg, type);
 		}
 		// Calculate map:
 
-		// create outImge:
+		// create images for editing
 		BufferedImage tmpIMG = new BufferedImage(oldColumns, oldRows, INimg.getType());
 		BufferedImage colIMG = new BufferedImage(newColumns, oldRows, INimg.getType());
 		BufferedImage OUTimg = new BufferedImage(newColumns, newRows, INimg.getType());
 		BufferedImage transIMG = new BufferedImage(oldRows, newColumns, INimg.getType());
-
+		
+		// calculate row and column size
 		int colSize = oldColumns - newColumns;
 		int rowSize = oldRows - newRows;
 		tmpIMG = INimg;
-
-		if (colSize < 0) {
-			seamMat = iterDynamic(energyMatrix, Math.abs(colSize));
+		
+		if (colSize < 0) { // if adding column seams
+			seamMat = iterDynamic(energyMatrix, Math.abs(colSize)); // find best seams to add
 			colIMG = addSeams(INimg, seamMat, Math.abs(colSize));
-		} else {
-			seammap = dynamicSeam(energyMatrix); // if colsize > 0
+		} else { // if cutting column seams
+			seammap = dynamicSeam(energyMatrix); // calculate optimal seam
 			for (int i = 0; i < Math.abs(colSize); i++) {
 				// remove seams:
 				tmpIMG = cutSeams(tmpIMG, seammap, 1);
-				if (type != 2) {
+				if (type != 2) { // get energy matrix
 					energyMatrix = energyCal(tmpIMG, type);
-				} else {
+				} else { // with forwarding
 					energyMatrix = energyCalForward(tmpIMG, type);
 				}
-				seammap = dynamicSeam(energyMatrix);
+				seammap = dynamicSeam(energyMatrix); // calculate optimal seam
 			}
 			colIMG = tmpIMG;
 		}
 		
+		// now if height needs to change
 		if (rowSize != 0) {
-			transIMG = transposeIMG(colIMG);
-			if (type != 2) {
+			transIMG = transposeIMG(colIMG); // transpose image
+			if (type != 2) { // calculate energy matrix
 				energyMatrix = energyCal(transIMG, type);
-			} else {
+			} else { // with forwarding
 				energyMatrix = energyCalForward(transIMG, type);
 			}
-			if (rowSize < 0) {
-				seamMat = iterDynamic(energyMatrix, Math.abs(rowSize));
+			if (rowSize < 0) { // add seams
+				seamMat = iterDynamic(energyMatrix, Math.abs(rowSize)); // find best seams to add
 				transIMG = addSeams(transIMG, seamMat, Math.abs(rowSize));
-			} else {
+			} else { // cut seams
 				for (int i = 0; i < Math.abs(rowSize); i++) {
-					// Calculate map:
-					seammap = dynamicSeam(energyMatrix);
+					seammap = dynamicSeam(energyMatrix); // find optimal seam to cut
 					transIMG = cutSeams(transIMG, seammap, 1);
 
-					if (type != 2) {
+					if (type != 2) { // calculate energy matrix
 						energyMatrix = energyCal(transIMG, type);
-					} else {
+					} else { // with forwarding
 						energyMatrix = energyCalForward(transIMG, type);
 					}
 				}
 			}
 			OUTimg = transposeIMG(transIMG);
-		} else {
+		} else { // if height is not changed
 			OUTimg = colIMG;
 		}
 
@@ -120,12 +121,12 @@ public class Seamcarv {
 		BufferedImage outImg = new BufferedImage(width + size, height, inImg.getType());
 		for (int j = 0; j < height; j++) {
 			for (int i = 0; i < width + size; i++) {
-				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
-				for (int k = 0; k < seammap.length; k++) {
-					if ((i - diff) == seammap[k].way[j]) {
-						i++;
+				outImg.setRGB(i, j, inImg.getRGB(i - diff, j)); // set RGB in point (i,j)
+				for (int k = 0; k < seammap.length; k++) { 
+					if ((i - diff) == seammap[k].way[j]) { // check if is in the path of one of the optimal seams
+						i++; //increase i and diff
 						diff++;
-						outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
+						outImg.setRGB(i, j, inImg.getRGB(i - diff, j)); // duplicate relevant pixel
 					}
 				}
 			}
@@ -142,12 +143,13 @@ public class Seamcarv {
 		BufferedImage outImg = new BufferedImage(width + size, height, inImg.getType());
 		for (int j = 0; j < height; j++) {
 			for (int i = 0; i < width + size; i++) {
-				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
+				outImg.setRGB(i, j, inImg.getRGB(i - diff, j)); // set RGB in point (i,j)
 				for (int k = 0; k < seammap.length; k++) {
-					if ((i - diff) == seammap[k].way[j]) {
-						i++;
+					if ((i - diff) == seammap[k].way[j]) { // check if is in the path of one of the optimal seams
+						i++; // increase i and diff
 						diff++;
-						if ((i - diff - 1 > -1) && (i - diff + 1 < width)) {
+						if ((i - diff - 1 > -1) && (i - diff + 1 < width)) { // if not on edges
+							//calculate RGB for pixels left and right of the relevant one
 							RGB0 = inImg.getRGB(i - diff - 1, j);
 							RGB1 = inImg.getRGB(i - diff, j);
 							RGB2 = inImg.getRGB(i - diff + 1, j);
@@ -161,10 +163,11 @@ public class Seamcarv {
 							g2 = (RGB2 >> 8) & 0xff;
 							b2 = (RGB2) & 0xff;
 							rAVG = (r0 + r1 + r2) / 3;
+							//average RGB
 							gAVG = (g0 + g1 + g2) / 3;
 							bAVG = (b0 + b1 + b2) / 3;
 							avgRGB = ((rAVG & 0x0ff) << 16) | ((gAVG & 0x0ff) << 8) | (bAVG & 0x0ff);
-							outImg.setRGB(i, j, avgRGB);
+							outImg.setRGB(i, j, avgRGB); // set new average RGB in relevant pixel
 						}
 					}
 				}
@@ -271,7 +274,7 @@ public class Seamcarv {
 		BufferedImage OUTimg = new BufferedImage(height, width, iNimg.getType());
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
-				OUTimg.setRGB(j, i, iNimg.getRGB(i, j));
+				OUTimg.setRGB(j, i, iNimg.getRGB(i, j)); // switch indexes i and j of the original picture
 			}
 		}
 		return OUTimg;
@@ -300,18 +303,22 @@ public class Seamcarv {
 	}
 
 	private static float getDifference(BufferedImage image, int i1, int j1, int i2, int j2) {
+		// calculate RGB of first pixel
 		int RGB1 = image.getRGB(i1, j1);
 		int r1 = (RGB1 >> 16) & 0xff;
 		int g1 = (RGB1 >> 8) & 0xff;
 		int b1 = (RGB1) & 0xff;
+		// calculate RGB of second pixel
 		int RGB2 = image.getRGB(i2, j2);
 		int r2 = (RGB2 >> 16) & 0xff;
 		int g2 = (RGB2 >> 8) & 0xff;
 		int b2 = (RGB2) & 0xff;
+		// difference between pixel values
 		float sum = (Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2)) / 3;
 		return sum;
 	}
-
+	
+	//forwarding functions CU, CR, CL according to paper
 	private static float CU(BufferedImage image, int i, int j) {
 		return (getDifference(image, i + 1, j, i - 1, j));
 	}
@@ -330,18 +337,20 @@ public class Seamcarv {
 		int width = img.getWidth();
 		float[][] energyArr = new float[width][height];
 		int neighbors = 8;
-		if (type != 2) {
+		if (type != 2) { // not forwarding
 			for (int i = 0; i < width; i++) {
 				for (int j = 0; j < height; j++) {
 					if ((i == 0 && j == 0) || (i == width - 1 && j == height - 1) || (i == 0 && j == height - 1)
-							|| (i == width - 1 && j == 0)) {
+							|| (i == width - 1 && j == 0)) { // if pixel is in corner
 						neighbors = 3;
-					} else if (i == 0 || i == width - 1 || j == 0 || j == height - 1) {
+					} else if (i == 0 || i == width - 1 || j == 0 || j == height - 1) { // if pixel is on top/bottom row
+																						// or left/right column
 						neighbors = 5;
-					} else
+					} else { // pixel is surrounded by other pixels
 						neighbors = 8;
-					energyArr[i][j] = (RGBdiff(img, i, j) / neighbors);
-					if (type == 1) {
+						}
+					energyArr[i][j] = (RGBdiff(img, i, j) / neighbors); // calculate energy for pixel and normalize
+					if (type == 1) { // add entropy
 						energyArr[i][j] += entropy(img, i, j);
 					}
 				}
@@ -378,6 +387,7 @@ public class Seamcarv {
 		return mat;															// return answer matrix 
 	}
 	
+	// algorithm according to paper
 	public static float entropy(BufferedImage img, int i, int j) {
 		float sum = 0, p = 0, h = 0;
 		int RGB2, r2 = 0, g2 = 0, b2 = 0, grey2 = 0;
@@ -428,7 +438,7 @@ public class Seamcarv {
 		return h;
 	}
 
-	public static float RGBdiff(BufferedImage img, int i, int j) {
+	public static float RGBdiff(BufferedImage img, int i, int j) { // calculte enerdy for pixel according to neighbors
 		int RGB = img.getRGB(i, j);
 		int r = (RGB >> 16) & 0xff;
 		int g = (RGB >> 8) & 0xff;
@@ -437,22 +447,23 @@ public class Seamcarv {
 		float sum = 0;
 
 		for (int k = i - 1; k < i + 2; k++) {
-			if (k == -1)
+			if (k == -1) // left pixel
 				k++;
 			if (k > (img.getWidth() - 1))
 				continue;
 
 			for (int l = j - 1; l < j + 2; l++) {
-				if (l == -1)
+				if (l == -1) // top pixel
 					l++;
 				if (l > (img.getHeight() - 1))
 					continue;
-
+				
+				// get RGB values for pixel (k,l) 
 				RGB2 = img.getRGB(k, l);
 				r2 = (RGB2 >> 16) & 0xff;
 				g2 = (RGB2 >> 8) & 0xff;
 				b2 = (RGB2) & 0xff;
-				sum += ((Math.abs(r - r2) + Math.abs(g - g2) + Math.abs(b - b2)) / 3);
+				sum += ((Math.abs(r - r2) + Math.abs(g - g2) + Math.abs(b - b2)) / 3); // add to total energy of pixel
 			}
 		}
 		return sum;
