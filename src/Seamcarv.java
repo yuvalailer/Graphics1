@@ -1,4 +1,7 @@
 import javax.imageio.ImageIO;
+
+import jdk.internal.jfr.events.ErrorThrownEvent;
+
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -25,16 +28,21 @@ public class Seamcarv {
 		int oldColumns = INimg.getWidth();
 		int oldRows = INimg.getHeight();
 		SeamMap seammap = new SeamMap();
+		SeamMap[] seamMat = new SeamMap[Math.abs(newColumns - oldColumns)];
+
+		float[][] energyMatrix = new float[oldColumns][oldRows];
 
 		System.out.println("procedure initiated");
 		System.out.println("old photo size - " + oldColumns + "X" + oldRows);
 		System.out.println("new photo size - " + newColumns + "X" + newRows);
 
 		// get energy matrix:
-		float[][] energyMatrix = energyCal(INimg, type);
-
+		if (type != 2) {
+			energyMatrix = energyCal(INimg, type);
+		} else {
+			energyMatrix = energyCalForward(INimg, type);
+		}
 		// Calculate map:
-		seammap = dynamicSeam(energyMatrix);
 
 		// create outImge:
 		BufferedImage tmpIMG = new BufferedImage(oldColumns, oldRows, INimg.getType());
@@ -46,35 +54,52 @@ public class Seamcarv {
 		int colSize = oldColumns - newColumns;
 		int rowSize = oldRows - newRows;
 		tmpIMG = INimg;
-		for (int i = 0; i < Math.abs(colSize); i++) {
-			// System.out.println(i);
-			// remove seams:
-			if (colSize >= 0) {
+
+		if (colSize < 0) {
+			seamMat = iterDynamic(energyMatrix, Math.abs(colSize));
+			colIMG = addSeams(INimg, seamMat, Math.abs(colSize));
+		} else {
+			seammap = dynamicSeam(energyMatrix); // if colsize > 0
+			for (int i = 0; i < Math.abs(colSize); i++) {
+				// System.out.println(i);
+				// remove seams:
 				tmpIMG = cutSeams(tmpIMG, seammap, 1);
-			} else if (colSize < 0) {
-				tmpIMG = addSeams(tmpIMG, seammap, 1);
+				if (type != 2) {
+					energyMatrix = energyCal(tmpIMG, type);
+				} else {
+					energyMatrix = energyCalForward(tmpIMG, type);
+				}
+				seammap = dynamicSeam(energyMatrix);
+				// for (int j = 0; j < seammap.way.length; j++) {
+				// System.out.print(seammap.way[j] + " ");
+				// }
+				// System.out.println("");
 			}
-			energyMatrix = energyCal(tmpIMG, type);
-			seammap = dynamicSeam(energyMatrix);
-			// for (int j = 0; j < seammap.way.length; j++) {
-			// System.out.print(seammap.way[j] + " ");
-			// }
-			// System.out.println("");
+			colIMG = tmpIMG;
 		}
-		colIMG = tmpIMG;
 
 		if (rowSize != 0) {
 
 			transIMG = transposeIMG(colIMG);
-			for (int i = 0; i < Math.abs(rowSize); i++) {
+			if (type != 2) {
 				energyMatrix = energyCal(transIMG, type);
-				// Calculate map:
-				seammap = dynamicSeam(energyMatrix);
-
-				if (rowSize > 0) {
+			} else {
+				energyMatrix = energyCalForward(transIMG, type);
+			}
+			if (rowSize < 0) {
+				seamMat = iterDynamic(energyMatrix, Math.abs(rowSize));
+				transIMG = addSeams(transIMG, seamMat, Math.abs(rowSize));
+			} else {
+				for (int i = 0; i < Math.abs(rowSize); i++) {
+					// Calculate map:
+					seammap = dynamicSeam(energyMatrix);
 					transIMG = cutSeams(transIMG, seammap, 1);
-				} else if (rowSize < 0) {
-					transIMG = addSeams(transIMG, seammap, 1);
+
+					if (type != 2) {
+						energyMatrix = energyCal(transIMG, type);
+					} else {
+						energyMatrix = energyCalForward(transIMG, type);
+					}
 				}
 			}
 			OUTimg = transposeIMG(transIMG);
@@ -102,31 +127,39 @@ public class Seamcarv {
 		return outMAT;
 	}
 
-
-
-	private static float getDifference(BufferedImage image, int i1, int j1, int i2, int j2) {
-		int RGB1 = image.getRGB(i1, j1);
-		int r1 = (RGB1 >> 16) & 0xff;
-		int g1 = (RGB1 >> 8) & 0xff;
-		int b1 = (RGB1) & 0xff;
-		int RGB2 = image.getRGB(i2, j2);
-		int r2 = (RGB2 >> 16) & 0xff;
-		int g2 = (RGB2 >> 8) & 0xff;
-		int b2 = (RGB2) & 0xff;
-		float sum = (Math.abs(r1-r2) + Math.abs(g1-g2) + Math.abs(b1-b2))/3; //TODO square root
-		return sum;
+	private static BufferedImage addSeams(BufferedImage inImg, SeamMap seammap[], int size) {
+		int height = inImg.getHeight();
+		int width = inImg.getWidth();
+		int diff = 0;
+		BufferedImage outImg = new BufferedImage(width + size, height, inImg.getType());
+		for (int j = 0; j < height; j++) {
+			for (int i = 0; i < width + size; i++) {
+				outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
+				for (int k = 0; k < seammap.length; k++) {
+					if ((i - diff) == seammap[k].way[j]) {
+						i++;
+						diff++;
+						outImg.setRGB(i, j, inImg.getRGB(i - diff, j));
+					}
+				}
+			}
+			diff = 0;
+		}
+		return outImg;
 	}
 
-	private static float CU(BufferedImage image, int i, int j) {
-		return (getDifference(image, i+1, j, i-1, j));
-	}
+	private static SeamMap[] iterDynamic(float[][] energyMatrix, int size) {
+		SeamMap[] seammap = new SeamMap[size];
+		SeamMap itSeam = new SeamMap();
 
-	private static float CR(BufferedImage image, int i, int j) {
-		return (getDifference(image, i+1, j, i-1, j)) + (getDifference(image, i, j-1, i+1, j));
-	}
-
-	private static float CL(BufferedImage image, int i, int j) {
-		return (getDifference(image, i+1, j, i-1, j)) + (getDifference(image, i, j-1, i+1, j));
+		for (int i = 0; i < seammap.length; i++) {
+			itSeam = dynamicSeam(energyMatrix);
+			for (int j = 0; j < energyMatrix[0].length; j++) {
+				energyMatrix[itSeam.way[j]][j] = 255;
+			}
+			seammap[i] = itSeam;
+		}
+		return seammap;
 	}
 
 	private static SeamMap dynamicSeam(float[][] energyMatrix) {
@@ -135,35 +168,46 @@ public class Seamcarv {
 		int minIndex = 0;
 		int iterIndex = 0;
 		int iterMin = 0;
-		float[][] memoMatrix = new float[energyMatrix.length][energyMatrix[0].length]; 
+		float[][] memoMatrix = new float[energyMatrix.length][energyMatrix[0].length];
 		// Preparation
 		for (int i = 0; i < memoMatrix.length; i++) {
-			memoMatrix[i][0] = energyMatrix[i][0]; 			// fill first line with the energy prameters
+			memoMatrix[i][0] = energyMatrix[i][0]; // fill first line with the
+													// energy prameters
 		}
-		for (int i = 0; i < memoMatrix.length; i++) { //X
-			for (int j = 1; j < memoMatrix[0].length - 1; j++) {//Y
-				memoMatrix[i][j+1] = memoMatrix[i][j] + energyMatrix[i][j+1]; // [ ][A][ ]
-																			  // [ ][B][ ]
-				
-						if( i > 0 ) { 																		// [ ][A][ ]
-							if(memoMatrix[i-1][j+1] > energyMatrix[i-1][j+1] + memoMatrix[i][j] ){   		// [B][ ][ ]
-								memoMatrix[i-1][j+1] = energyMatrix[i-1][j+1] + memoMatrix[i][j];
-							}
-						}
-						if(i < memoMatrix.length - 1){
-							if(memoMatrix[i+1][j+1] > energyMatrix[i+1][j+1] + memoMatrix[i][j] ){   		// [A][ ][ ]
-								memoMatrix[i+1][j+1] = energyMatrix[i+1][j+1] + memoMatrix[i][j];			// [ ][B][ ]
-							}
-						}
-			}
-		} 
+		for (int i = 0; i < memoMatrix.length; i++) { // X
+			for (int j = 1; j < memoMatrix[0].length - 1; j++) {// Y
+				memoMatrix[i][j + 1] = memoMatrix[i][j] + energyMatrix[i][j + 1]; // [
+																					// ][A][
+																					// ]
+																					// [
+																					// ][B][
+																					// ]
 
+				if (i > 0) { // [ ][A][ ]
+					if (memoMatrix[i - 1][j + 1] > energyMatrix[i - 1][j + 1] + memoMatrix[i][j]) { // [B][
+																									// ][
+																									// ]
+						memoMatrix[i - 1][j + 1] = energyMatrix[i - 1][j + 1] + memoMatrix[i][j];
+					}
+				}
+				if (i < memoMatrix.length - 1) {
+					if (memoMatrix[i + 1][j + 1] > energyMatrix[i + 1][j + 1] + memoMatrix[i][j]) { // [A][
+																									// ][
+																									// ]
+						memoMatrix[i + 1][j + 1] = energyMatrix[i + 1][j + 1] + memoMatrix[i][j]; // [
+																									// ][B][
+																									// ]
+					}
+				}
+			}
+		}
 
 		// selection
 		for (int j = 0; j < memoMatrix.length; j++) { // iterate over the last
 			// row
-			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length
-			                                                                             - 1]))) { // choose the minimal
+			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length - 1]))) { // choose
+																													// the
+																													// minimal
 				minIndex = j; // replace minimal index
 			}
 		} // minimal chosen
@@ -177,10 +221,15 @@ public class Seamcarv {
 		for (int j = (memoMatrix[0].length - 2); j >= 0; j--) { // iterate
 			// over the
 			// y axis
-			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { // not at the edges.
+			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { // not
+																			// at
+																			// the
+																			// edges.
 				iterMin = iterIndex - 1;
 				for (int simp = -1; simp < 2; simp++) {
-					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) {	// choose minimal neighbor
+					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
+																							// minimal
+																							// neighbor
 						iterMin = iterIndex + simp; // change minimal
 					}
 				}
@@ -298,7 +347,7 @@ public class Seamcarv {
 		return OUTimg;
 	}
 
-	private static BufferedImage addSeams(BufferedImage inImg, SeamMap seammap, int size) {
+	private static BufferedImage addSeams2(BufferedImage inImg, SeamMap seammap, int size) {
 		int height = inImg.getHeight();
 		int width = inImg.getWidth();
 		int diff = 0;
@@ -360,29 +409,72 @@ public class Seamcarv {
 	public static float[][] energyCalForward(BufferedImage img, int type) {
 		float[][] mat = new float[img.getWidth()][img.getHeight()];
 		float min = 0;
-
-		for (int i=1; i < img.getWidth()-1; i++) {
+		int r0 = 0, r1 = 0, g0 = 0, g1 = 0, b0 = 0, b1 = 0, RGB0 = 0, RGB1 = 0;
+		for (int i = 1; i < img.getWidth() - 1; i++) {
 			mat[i][0] = CU(img, i, 0);
 		}
 		for (int i = 0; i < img.getHeight(); i++) {
-			mat[0][i] = 1000;
-			mat[img.getWidth()-1][i] = 1000;
+			mat[0][i] = 255;
+			mat[img.getWidth() - 1][i] = 255;
 		}
+		// RGB0 = img.getRGB(1,0);
+		// RGB1 = img.getRGB(img.getWidth()-2,0);
+		// r0 = (RGB0 >> 16) & 0xff;
+		// g0 = (RGB0 >> 8) & 0xff;
+		// b0 = (RGB0) & 0xff;
+		// r1 = (RGB1 >> 16) & 0xff;
+		// g1 = (RGB1 >> 8) & 0xff;
+		// b1 = (RGB1) & 0xff;
+		// mat[0][0] = (r0+b0+g0)/3;
+		// mat[img.getWidth()-1][0] = (r1+b1+g1)/3;
+		// for (int i = 1; i < img.getHeight(); i++) {
+		// mat[0][i] = getDifference(img, 0, i-1, 1, i);
+		// mat[img.getWidth()-1][i] = getDifference(img, img.getWidth()-1, i-1,
+		// img.getWidth()-2, i);
+		// }
 
-		for (int j = 1; j < img.getHeight()-1; j++) {
-			for (int i = 1; i < img.getWidth()-1; i++) {
-				min = mat[i-1][j] + CU(img, i, j);
-				if (mat[i-1][j-1] + CL(img,i,j) < min) {
-					min = mat[i-1][j-1] + CL(img,i,j);
+		for (int j = 1; j < img.getHeight() - 1; j++) {
+			for (int i = 1; i < img.getWidth() - 1; i++) {
+
+				min = mat[i - 1][j] + CU(img, i, j);
+				if (mat[i - 1][j - 1] + CL(img, i, j) < min) {
+					min = mat[i - 1][j - 1] + CL(img, i, j);
 				}
-				if (mat[i-1][j+1] + CR(img,i,j) < min) {
-					min = mat[i-1][j+1] + CR(img,i,j);
+				if (mat[i - 1][j + 1] + CR(img, i, j) < min) {
+					min = mat[i - 1][j + 1] + CR(img, i, j);
 				}
 				mat[i][j] = min;
 			}
 
 		}
 		return mat;
+	}
+
+	private static float getDifference(BufferedImage image, int i1, int j1, int i2, int j2) {
+		int RGB1 = image.getRGB(i1, j1);
+		int r1 = (RGB1 >> 16) & 0xff;
+		int g1 = (RGB1 >> 8) & 0xff;
+		int b1 = (RGB1) & 0xff;
+		int RGB2 = image.getRGB(i2, j2);
+		int r2 = (RGB2 >> 16) & 0xff;
+		int g2 = (RGB2 >> 8) & 0xff;
+		int b2 = (RGB2) & 0xff;
+		float sum = (Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2)) / 3; // TODO
+																						// square
+																						// root
+		return sum;
+	}
+
+	private static float CU(BufferedImage image, int i, int j) {
+		return (getDifference(image, i + 1, j, i - 1, j));
+	}
+
+	private static float CR(BufferedImage image, int i, int j) {
+		return (getDifference(image, i + 1, j, i - 1, j)) + (getDifference(image, i, j - 1, i + 1, j));
+	}
+
+	private static float CL(BufferedImage image, int i, int j) {
+		return (getDifference(image, i + 1, j, i - 1, j)) + (getDifference(image, i, j - 1, i + 1, j));
 	}
 
 	public static float[][] energyCal(BufferedImage img, int type) {
