@@ -172,16 +172,12 @@ public class Seamcarv {
 		// Preparation
 		for (int i = 0; i < memoMatrix.length; i++) {
 			memoMatrix[i][0] = energyMatrix[i][0]; // fill first line with the
-													// energy prameters
+			// energy prameters
 		}
-		for (int i = 0; i < memoMatrix.length; i++) { // X
-			for (int j = 1; j < memoMatrix[0].length - 1; j++) {// Y
-				memoMatrix[i][j + 1] = memoMatrix[i][j] + energyMatrix[i][j + 1]; // [
-																					// ][A][
-																					// ]
-																					// [
-																					// ][B][
-																					// ]
+		for (int j = 0; j < memoMatrix[0].length - 1; j++) {// Y
+			for (int i = 0; i < memoMatrix.length; i++) { // X
+				memoMatrix[i][j + 1] = memoMatrix[i][j] + energyMatrix[i][j + 1]; // [][A][]
+																					// [][B][]
 
 				if (i > 0) { // [ ][A][ ]
 					if (memoMatrix[i - 1][j + 1] > energyMatrix[i - 1][j + 1] + memoMatrix[i][j]) { // [B][
@@ -189,15 +185,11 @@ public class Seamcarv {
 																									// ]
 						memoMatrix[i - 1][j + 1] = energyMatrix[i - 1][j + 1] + memoMatrix[i][j];
 					}
-				}
-				if (i < memoMatrix.length - 1) {
-					if (memoMatrix[i + 1][j + 1] > energyMatrix[i + 1][j + 1] + memoMatrix[i][j]) { // [A][
-																									// ][
-																									// ]
-						memoMatrix[i + 1][j + 1] = energyMatrix[i + 1][j + 1] + memoMatrix[i][j]; // [
-																									// ][B][
-																									// ]
-					}
+					if (memoMatrix[i][j + 1] > energyMatrix[i][j + 1] + memoMatrix[i - 1][j]) { // [A][X][
+																								// ]
+						memoMatrix[i][j + 1] = energyMatrix[i][j + 1] + memoMatrix[i - 1][j]; // [
+																								// ][B][
+					} // ]
 				}
 			}
 		}
@@ -206,8 +198,8 @@ public class Seamcarv {
 		for (int j = 0; j < memoMatrix.length; j++) { // iterate over the last
 			// row
 			if (((memoMatrix[j][memoMatrix[0].length - 1]) < (memoMatrix[minIndex][memoMatrix[0].length - 1]))) { // choose
-																													// the
-																													// minimal
+				// the
+				// minimal
 				minIndex = j; // replace minimal index
 			}
 		} // minimal chosen
@@ -222,14 +214,14 @@ public class Seamcarv {
 			// over the
 			// y axis
 			if ((iterIndex > 0) && (iterIndex < memoMatrix.length - 1)) { // not
-																			// at
-																			// the
-																			// edges.
+				// at
+				// the
+				// edges.
 				iterMin = iterIndex - 1;
 				for (int simp = -1; simp < 2; simp++) {
 					if (((memoMatrix[iterMin][j]) > (memoMatrix[iterIndex + simp][j]))) { // choose
-																							// minimal
-																							// neighbor
+						// minimal
+						// neighbor
 						iterMin = iterIndex + simp; // change minimal
 					}
 				}
@@ -460,8 +452,8 @@ public class Seamcarv {
 		int g2 = (RGB2 >> 8) & 0xff;
 		int b2 = (RGB2) & 0xff;
 		float sum = (Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2)) / 3; // TODO
-																						// square
-																						// root
+		// square
+		// root
 		return sum;
 	}
 
